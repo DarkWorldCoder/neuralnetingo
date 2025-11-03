@@ -7,55 +7,85 @@ import (
 )
 
 type Neuron struct {
-	weights []float64
-	bias    float64
+	weights mat.Dense
+	bias    mat.Dense
+}
+
+type Layer struct {
+	neurons []Neuron
 }
 
 func RunModel() {
-	inputs := [][]float64{{1, 2, 3, 2.5}, {2.0, 5.0, -1.0, 2.0}, {-1.5, 2.7, 3.3, -0.8}}
+	inputs := mat.NewDense(3, 4, []float64{1, 2, 3, 2.5, 2.0, 5.0, -1.0, 2.0, -1.5, 2.7, 3.3, -0.8})
+
 	n1 := Neuron{
-		weights: []float64{0.2, 0.8, -0.5, 1.0},
-		bias:    2.0,
+		weights: *mat.NewDense(1, 4, []float64{0.2, 0.8, -0.5, 1.0}),
+		bias:    *mat.NewDense(1, 1, []float64{2.0}),
 	}
 	n2 := Neuron{
-		weights: []float64{0.5, -0.91, 0.26, -0.5},
-		bias:    3,
+		weights: *mat.NewDense(1, 4, []float64{0.5, -0.91, 0.26, -0.5}),
+		bias:    *mat.NewDense(1, 1, []float64{3.0}),
 	}
 	n3 := Neuron{
-		weights: []float64{-0.26, -0.27, 0.17, 0.87},
-		bias:    0.5,
+		weights: *mat.NewDense(1, 4, []float64{-0.26, -0.27, 0.17, 0.87}),
+		bias:    *mat.NewDense(1, 1, []float64{0.5}),
 	}
-	weights := [][]float64{
-		n1.weights,
-		n2.weights,
-		n3.weights,
-	}
-	biases := []float64{n1.bias, n2.bias, n3.bias}
 
-	input_dense := mat.NewDense(len(inputs), len(inputs[0]), nil)
-	for i := 0; i < len(inputs); i++ {
-		for j := 0; j < len(inputs[0]); j++ {
-			input_dense.Set(i, j, inputs[i][j])
+	weights2 := []*mat.Dense{
+		mat.NewDense(1, 3, []float64{0.1, -0.14, 0.5}),
+		mat.NewDense(1, 3, []float64{-0.5, 0.12, -0.33}),
+		mat.NewDense(1, 3, []float64{-0.44, 0.73, -0.13}),
+	}
+	biases2 := []*mat.Dense{
+		mat.NewDense(1, 1, []float64{-1}),
+		mat.NewDense(1, 1, []float64{2}),
+		mat.NewDense(1, 1, []float64{-0.5}),
+	}
+	layer1 := Layer{
+		neurons: []Neuron{n1, n2, n3},
+	}
+	layer2 := Layer{}
+	for i := 0; i < 3; i++ {
+		layer2.neurons = append(layer2.neurons, Neuron{
+			weights: *weights2[i],
+			bias:    *biases2[i],
+		})
+	}
+
+	outputs1 := mat.NewDense(3, 3, nil)
+	for i, neuron := range layer1.neurons {
+		var result mat.Dense
+		result.Mul(inputs, neuron.weights.T())
+		// Broadcast bias to match result dimensions
+		rr, rc := result.Dims()
+		biasValue := neuron.bias.At(0, 0)
+		biasData := make([]float64, rr*rc)
+		for j := range biasData {
+			biasData[j] = biasValue
 		}
+		biasBroadcast := mat.NewDense(rr, rc, biasData)
+		result.Add(&result, biasBroadcast)
+		outputs1.SetCol(i, mat.Col(nil, 0, &result))
 	}
 
-	weight_dense := mat.NewDense(len(weights), len(weights[0]), nil)
-	for i := 0; i < len(weights); i++ {
-		for j := 0; j < len(weights[0]); j++ {
-			weight_dense.Set(i, j, weights[i][j])
+	outputs2 := mat.NewDense(3, 3, nil)
+	for i, neuron := range layer2.neurons {
+		var result mat.Dense
+		result.Mul(outputs1, neuron.weights.T())
+		// Broadcast bias to match result dimensions
+		rr, rc := result.Dims()
+		biasValue := neuron.bias.At(0, 0)
+		biasData := make([]float64, rr*rc)
+		for j := range biasData {
+			biasData[j] = biasValue
 		}
+		biasBroadcast := mat.NewDense(rr, rc, biasData)
+		result.Add(&result, biasBroadcast)
+		outputs2.SetCol(i, mat.Col(nil, 0, &result))
 	}
 
-	var output_dense mat.Dense
-	output_dense.Mul(input_dense, weight_dense.T())
-
-	for i := 0; i < output_dense.RawMatrix().Rows; i++ {
-		for j := 0; j < output_dense.RawMatrix().Cols; j++ {
-			output_dense.Set(i, j, output_dense.At(i, j)+biases[j])
-		}
-	}
-
-	fmt.Printf("Output Dense:\n%v\n", mat.Formatted(&output_dense))
+	fmt.Println("Final outputs:")
+	fmt.Printf("%v\n", mat.Formatted(outputs2, mat.Prefix(""), mat.Excerpt(0)))
 }
 func main() {
 
