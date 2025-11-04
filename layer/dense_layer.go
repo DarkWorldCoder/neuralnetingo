@@ -9,7 +9,7 @@ import (
 type Layer struct {
 	Weights mat.Matrix
 	Biases  mat.Dense
-	Output  *mat.Dense
+	Output  mat.Dense
 }
 
 func (l *Layer) Initialization(n_inputs, n_neurons int) {
@@ -28,9 +28,9 @@ func (l *Layer) Initialization(n_inputs, n_neurons int) {
 
 func (l *Layer) Forward(input *mat.Dense) {
 	r, _ := input.Dims()
-	_, c1 := l.Weights.T().Dims()
+	c, _ := l.Weights.Dims()
 
-	result := mat.NewDense(r, c1, nil)
+	result := mat.NewDense(r, c, nil)
 	result.Product(input, l.Weights.T())
 	rows, cols := result.Dims()
 	for i := 0; i < rows; i++ {
@@ -38,17 +38,8 @@ func (l *Layer) Forward(input *mat.Dense) {
 			result.Set(i, j, result.At(i, j)+l.Biases.At(0, j))
 		}
 	}
-	l.Output = result
+	l.Output = *result
 
 }
 
 // utils
-func ConvertToMatDense(data [][]float64) *mat.Dense {
-	rows := len(data)
-	cols := len(data[0])
-	flatData := make([]float64, 0, rows*cols)
-	for _, row := range data {
-		flatData = append(flatData, row...)
-	}
-	return mat.NewDense(rows, cols, flatData)
-}
