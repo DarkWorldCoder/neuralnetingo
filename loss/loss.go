@@ -17,6 +17,8 @@ func (loss *CategoricalCrossEntropy) Calculate(output *mat.Dense, y []uint8) flo
 
 }
 
+// calculate accuracy
+
 func (loss *CategoricalCrossEntropy) Forward(prediction *mat.Dense, target []uint8) []float64 {
 
 	samples := len(target)
