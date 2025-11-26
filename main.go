@@ -34,6 +34,8 @@ func RunModel() {
 
 func main() {
 
-	RunModel()
+	// RunModel()
+	data, _ := dataset.VerticalData(1000, 3)
+	dataset.PlotScatterData(data, 3)
 
 }
